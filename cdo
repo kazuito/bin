@@ -1,0 +1,6 @@
+#!/bin/bash
+
+filename=${1%.*}
+gcc $1 -o $filename && `dirname $1`/$filename ${@:2:($#-1)}
+rm `dirname $1`/$filename
+

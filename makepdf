@@ -1,0 +1,21 @@
+#!/bin/bash
+
+open=0
+if [ "$1" = "-o" ] ; then
+    open=1
+    shift
+elif [ "$1" = "" ] ; then
+    exit 1
+fi
+
+for f in 1st 2nd 3rd final; do
+    echo "---------- $f try ----------"
+    uplatex -interaction=nonstopmode $1 > /dev/null || exit 1
+    grep 'Rerun' ${1%.tex}.log || break
+done
+
+dvipdfmx ${1%.tex}.dvi
+
+if [ "$open" = 1 ] ; then
+    open ${1%.tex}.pdf
+fi
