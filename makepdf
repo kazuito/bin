@@ -40,23 +40,35 @@ if [ -z $param ]; then
   echo "$PROGNAME: 引数がありません．"
   exit 1
 fi
-target=$param
+target=$(basename $param)
+noext=${target%.tex}
 
-if [[ "$chdst" = "1" ]]; then
-  if [[ -z "$dstdir" ]]; then
-    dstdir=$(dirname $target)/${target%.tex}
-  fi
-  dopt="--output-directory=$dstdir"
+if [[ "$chdst" = "1" ]] && [[ -z "$dstdir" ]]; then
+  dstdir=$(dirname $target)/$noext
+elif [[ ! "$chdst" = "1" ]]; then
+  dstdir=.
 fi
+
+if [[ ! -d "$dstdir" ]]; then
+  mkdir -p $dstdir
+fi
+
+if [[ "$pdfsamedir" = "1" ]]; then
+  pdfdir=$(dirname $target)
+else
+  pdfdir=$dstdir
+fi
+pdffn=$pdfdir/$noext.pdf
 
 for f in 1st 2nd 3rd final; do
   echo "---------- $f try ----------"
-  uplatex -interaction=nonstopmode $dopt $target > /dev/null || exit 1
-  grep 'Rerun' ${target%.tex}.log || break
+  uplatex -interaction=nonstopmode --output-directory="$dstdir" $target > /dev/null || exit 1
+  grep 'Rerun' "$dstdir/$noext.log" || break
 done
 
-dvipdfmx ${target%.tex}.dvi
+echo "$dstdir/$noext.dvi"
+dvipdfmx -o $pdffn "$dstdir/$noext.dvi"
 
 if [ "$open" = 1 ] ; then
-    open ${1%.tex}.pdf
+    open $pdffn
 fi
