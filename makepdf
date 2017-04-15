@@ -32,9 +32,9 @@ echo ${target%.tex}
 exit 0
 
 for f in 1st 2nd 3rd final; do
-    echo "---------- $f try ----------"
-    uplatex -interaction=nonstopmode $target > /dev/null || exit 1
-    grep 'Rerun' ${target%.tex}.log || break
+  echo "---------- $f try ----------"
+  uplatex -interaction=nonstopmode $target > /dev/null || exit 1
+  grep 'Rerun' ${target%.tex}.log || break
 done
 
 dvipdfmx ${target%.tex}.dvi
