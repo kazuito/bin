@@ -10,6 +10,19 @@ do
       open=1
       shift
       ;;
+    '-d'|'--directory')
+      chdst=1
+      if [[ ! -z "$2" ]] && [[ ! "$2" =~ ^-+ ]]; then
+        dstdir="$2"
+        shift
+      fi
+      shift
+      ;;
+    '--'|'-' )
+      shift 1
+      param+=( "$@" )
+      break
+      ;;
     -*)
       echo "$PROGNAME: 「$(echo $1 | sed 's/^-*//')」オプションは存在しません．" 1>&2
       exit 1
@@ -29,9 +42,16 @@ if [ -z $param ]; then
 fi
 target=$param
 
+if [[ "$chdst" = "1" ]]; then
+  if [[ -z "$dstdir" ]]; then
+    dstdir=$(dirname $target)/${target%.tex}
+  fi
+  dopt="--output-directory=$dstdir"
+fi
+
 for f in 1st 2nd 3rd final; do
   echo "---------- $f try ----------"
-  uplatex -interaction=nonstopmode $target > /dev/null || exit 1
+  uplatex -interaction=nonstopmode $dopt $target > /dev/null || exit 1
   grep 'Rerun' ${target%.tex}.log || break
 done
 
