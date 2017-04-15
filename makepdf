@@ -25,11 +25,9 @@ done
 
 if [ -z $param ]; then
   echo "$PROGNAME: 引数がありません．"
+  exit 1
 fi
-
 target=$param
-echo ${target%.tex}
-exit 0
 
 for f in 1st 2nd 3rd final; do
   echo "---------- $f try ----------"
