@@ -10,7 +10,10 @@ do
       open=1
       shift
       ;;
-    '-d'|'--directory')
+    '-d'|'--directory'|'-D')
+      if [[ "$1" = "-D" ]]; then
+        pdfsamedir=1
+      fi
       chdst=1
       if [[ ! -z "$2" ]] && [[ ! "$2" =~ ^-+ ]]; then
         dstdir="$2"
