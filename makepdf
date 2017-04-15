@@ -1,6 +1,5 @@
 #!/bin/bash
 
-open=0
 # Option parsing template by http://qiita.com/rita_cano_bika/items/9fcb2a61c6f360632541
 PROGNAME=$(basename $0)
 for OPT in "$@"
