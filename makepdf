@@ -24,6 +24,8 @@ do
       pdfsamedir=1
       chdst=1
       dstdirname=texfiles
+      shift
+      ;;
     '--'|'-' )
       shift 1
       param+=( "$@" )
