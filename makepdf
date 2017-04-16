@@ -20,6 +20,10 @@ do
       fi
       shift
       ;;
+    '-t')
+      pdfsamedir=1
+      chdst=1
+      dstdirname=texfiles
     '--'|'-' )
       shift 1
       param+=( "$@" )
@@ -46,7 +50,10 @@ target=$(basename $param)
 noext=${target%.tex}
 
 if [[ "$chdst" = "1" ]] && [[ -z "$dstdir" ]]; then
-  dstdir=$(dirname $target)/$noext
+  if [[ -z "$dstdirname" ]]; then
+    dstdirname=$noext
+  fi
+  dstdir=$(dirname $target)/$dstdirname
 elif [[ ! "$chdst" = "1" ]]; then
   dstdir=.
 fi
