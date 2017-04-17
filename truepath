@@ -1,0 +1,20 @@
+#!/usr/bin/env ruby
+
+def resolve(path)
+  path_arr = File.expand_path(path).split('/')
+
+  result = ""
+  path_arr.each do |p|
+    next if p == ""
+    result += "/#{p}"
+    if ( File.symlink?(result) ) then
+      link = File.readlink(result)
+      result = resolve(File.expand_path(link, File.expand_path("..", result)))
+    end
+  end
+  result
+end
+
+ARGV.each do |a|
+  puts resolve(a)
+end
