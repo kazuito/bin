@@ -26,6 +26,15 @@ do
       dstdirname=texfiles
       shift
       ;;
+    '-p')
+      if [[ ! -z "$2" ]]; then
+        pdfbasename="$2"
+      else
+        echo "$PROGNAME: p オプションには引数が必要です．" 1>&2
+        exit 1
+      fi
+      shift 2
+      ;;
     '--'|'-' )
       shift 1
       param+=( "$@" )
@@ -69,7 +78,12 @@ if [[ "$pdfsamedir" = "1" ]]; then
 else
   pdfdir=$dstdir
 fi
-pdffn=$pdfdir/$noext.pdf
+
+if [[ -z "$pdfbasename" ]]; then
+  pdfbasename=$noext.pdf
+fi
+
+pdffn=$pdfdir/$pdfbasename
 
 for f in 1st 2nd 3rd final; do
   echo "---------- $f try ----------"
@@ -77,7 +91,6 @@ for f in 1st 2nd 3rd final; do
   grep 'Rerun' "$dstdir/$noext.log" || break
 done
 
-echo "$dstdir/$noext.dvi"
 dvipdfmx -o $pdffn "$dstdir/$noext.dvi"
 
 if [ "$open" = 1 ] ; then
