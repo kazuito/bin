@@ -15,6 +15,9 @@ def resolve(path)
   result
 end
 
+args = ARGV
+args.push(Dir.pwd) if args.length == 0
+
 ARGV.each do |a|
   puts resolve(a)
 end
