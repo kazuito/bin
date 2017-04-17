@@ -35,6 +35,10 @@ do
       fi
       shift 2
       ;;
+    '-r'|'--remove')
+      texfilesdelete=1
+      shift
+      ;;
     '--'|'-' )
       shift 1
       param+=( "$@" )
@@ -92,6 +96,10 @@ for f in 1st 2nd 3rd final; do
 done
 
 dvipdfmx -o $pdffn "$dstdir/$noext.dvi"
+
+if [[ "$texfilesdelete" = "1" ]]; then
+  rm -f $dstdir/$noext.{dvi,aux,log}
+fi
 
 if [ "$open" = 1 ] ; then
     open $pdffn
