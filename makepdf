@@ -20,6 +20,10 @@ do
       fi
       shift
       ;;
+    '--detect')
+      autodetect=1
+      shift
+      ;;
     '-t')
       pdfsamedir=1
       chdst=1
@@ -73,6 +77,17 @@ elif [[ ! "$chdst" = "1" ]]; then
   dstdir=.
 fi
 
+if [[ "$autodetect" = "1" ]] && [[ -z "$pdffilename" ]]; then
+  tmp=$(grep -oE '^%\s*makepdf-filename:\s*.+$' rep04.tex | \
+        ruby -e 'a=/^%\s*makepdf-filename:\s*(.+)/.match(STDIN.gets); puts a[1] if a != nil')
+  if [[ "$tmp" = "" ]]; then
+    echo "--detect: makepdf-filename: (filename) が記述された行がありません．" 1>&2
+    exit 1
+  else
+    pdfbasename="$tmp"
+  fi
+fi
+
 if [[ ! -d "$dstdir" ]]; then
   mkdir -p $dstdir
 fi
@@ -91,7 +106,11 @@ pdffn=$pdfdir/$pdfbasename
 
 for f in 1st 2nd 3rd final; do
   echo "---------- $f try ----------"
-  uplatex -interaction=nonstopmode --output-directory="$dstdir" $target > /dev/null || exit 1
+  result=`uplatex -interaction=nonstopmode --output-directory="$dstdir" $target`
+  if [ ! $? = 0 ]; then
+    echo "$result"
+    exit 1
+  fi
   grep 'Rerun' "$dstdir/$noext.log" || break
 done
 
