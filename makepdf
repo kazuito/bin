@@ -78,7 +78,7 @@ elif [[ ! "$chdst" = "1" ]]; then
 fi
 
 if [[ "$autodetect" = "1" ]] && [[ -z "$pdffilename" ]]; then
-  tmp=$(grep -oE '^%\s*makepdf-filename:\s*.+$' rep04.tex | \
+  tmp=$(grep -oE '^%\s*makepdf-filename:\s*.+$' "$target" | \
         ruby -e 'a=/^%\s*makepdf-filename:\s*(.+)/.match(STDIN.gets); puts a[1] if a != nil')
   if [[ "$tmp" = "" ]]; then
     echo "--detect: makepdf-filename: (filename) が記述された行がありません．" 1>&2
