@@ -65,20 +65,21 @@ if [ -z $param ]; then
   echo "$PROGNAME: 引数がありません．"
   exit 1
 fi
-target=$(basename $param)
-noext=${target%.tex}
+srcbn=$(basename $param)
+srcdir=$(dirname $param)
+noext=${srcbn%.tex}
 
 if [[ "$chdst" = "1" ]] && [[ -z "$dstdir" ]]; then
   if [[ -z "$dstdirname" ]]; then
     dstdirname=$noext
   fi
-  dstdir=$(dirname $target)/$dstdirname
+  dstdir=$srcdir/$dstdirname
 elif [[ ! "$chdst" = "1" ]]; then
   dstdir=.
 fi
 
 if [[ "$autodetect" = "1" ]] && [[ -z "$pdffilename" ]]; then
-  tmp=$(grep -oE '^%\s*makepdf-filename:\s*.+$' "$target" | \
+  tmp=$(grep -oE '^%\s*makepdf-filename:\s*.+$' "$param" | \
         ruby -e 'a=/^%\s*makepdf-filename:\s*(.+)/.match(STDIN.gets); puts a[1] if a != nil')
   if [[ "$tmp" = "" ]]; then
     echo "--detect: makepdf-filename: (filename) が記述された行がありません．" 1>&2
@@ -93,7 +94,7 @@ if [[ ! -d "$dstdir" ]]; then
 fi
 
 if [[ "$pdfsamedir" = "1" ]]; then
-  pdfdir=$(dirname $target)
+  pdfdir=$srcdir
 else
   pdfdir=$dstdir
 fi
@@ -106,7 +107,7 @@ pdffn=$pdfdir/$pdfbasename
 
 for f in 1st 2nd 3rd final; do
   echo "---------- $f try ----------"
-  result=`uplatex -interaction=nonstopmode --output-directory="$dstdir" $target`
+  result=`uplatex -interaction=nonstopmode --output-directory="$dstdir" $param`
   if [ ! $? = 0 ]; then
     echo "$result"
     exit 1
