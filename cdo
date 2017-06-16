@@ -1,6 +1,37 @@
 #!/bin/bash
 
-filename=${1%.*}
-gcc $1 -o $filename && `dirname $1`/$filename ${@:2:($#-1)}
-rm `dirname $1`/$filename
+for OPT in "$@"
+do
+  case "$OPT" in
+    '-c'|'--compile')
+      onlycompile=1
+      shift
+      ;;
+    '--'|'-' )
+      shift 1
+      param+=( "$@" )
+      break
+      ;;
+    -*)
+      echo "$PROGNAME: 「$(echo $1 | sed 's/^-*//')」オプションは存在しません．" 1>&2
+      exit 1
+      ;;
+    *)
+      if [[ ! -z "$1" ]] && [[ ! "$1" =~ ^-+ ]]; then
+        param+=( "$1" )
+        shift 1
+      fi
+      ;;
+  esac
+done
+
+filename=$param
+execfile=${filename%.*}
+
+gcc -o $execfile $filename
+
+if [ -z "$onlycompile" ] && [ $? = 0 ] ; then
+  `dirname $1`/$execfile ${@:2:($#-1)}
+  rm `dirname $1`/$execfile
+fi
 
