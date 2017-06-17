@@ -25,13 +25,15 @@ do
   esac
 done
 
-filename=$param
-execfile=${filename%.*}
+bfname=`basename $param`
+bdir=`dirname $param`
+filename=$bdir/$bfname
+execfile=$bdir/${bfname%.*}
 
 gcc -o $execfile $filename
 
 if [ -z "$onlycompile" ] && [ $? = 0 ] ; then
-  `dirname $1`/$execfile ${@:2:($#-1)}
-  rm `dirname $1`/$execfile
+  $execfile ${@:2:($#-1)}
+  rm $execfile
 fi
 
