@@ -33,7 +33,7 @@ execfile=$bdir/${bfname%.*}
 gcc -o $execfile $filename
 
 if [ -z "$onlycompile" ] && [ $? = 0 ] ; then
-  $execfile ${@:2:($#-1)}
+  $execfile ${param[@]:1:(${#param[@]}-1)}
   rm $execfile
 fi
 
