@@ -7,6 +7,10 @@ do
       onlycompile=1
       shift
       ;;
+    '-p')
+      compiler=g++
+      shift
+      ;;
     '--'|'-' )
       shift 1
       param+=( "$@" )
@@ -30,7 +34,18 @@ bdir=`dirname $param`
 filename=$bdir/$bfname
 execfile=$bdir/${bfname%.*}
 
-gcc -o $execfile $filename
+if [ -z  "$compiler" ]; then
+  case "$bfname" in
+    *\.cpp)
+      compiler=g++
+      ;;
+    *)
+      compiler=gcc
+      ;;
+  esac
+fi
+
+$compiler -o $execfile $filename
 
 if [ -z "$onlycompile" ] && [ $? = 0 ] ; then
   $execfile ${param[@]:1:(${#param[@]}-1)}
