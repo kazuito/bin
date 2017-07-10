@@ -11,6 +11,14 @@ do
       compiler=g++
       shift
       ;;
+    '--GLUT')
+      options="$options -framework GLUT -framework OpenGL"
+      shift
+      ;;
+    '--debug')
+      debug=1
+      shift
+      ;;
     '--'|'-' )
       shift 1
       param+=( "$@" )
@@ -45,7 +53,14 @@ if [ -z  "$compiler" ]; then
   esac
 fi
 
-$compiler -o $execfile $filename
+if [ "$debug" = "1" ]; then
+  echo "Compiler = $compiler"
+  echo "Options  = $options"
+  echo "Target File = $filename"
+  echo "Output File = $execfile"
+fi
+
+$compiler $options -o $execfile $filename
 
 if [ -z "$onlycompile" ] && [ $? = 0 ] ; then
   $execfile ${param[@]:1:(${#param[@]}-1)}
