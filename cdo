@@ -11,8 +11,17 @@ do
       compiler=g++
       shift
       ;;
+    '-l')
+      if [[ ! -z "$2" ]]; then
+        options="$options -l $2"
+      else
+        echo "$PROGNAME: l オプションには引数が必要です．" 1>&2
+        exit 1
+      fi
+      shift 2
+      ;;
     '--GLUT')
-      options="$options -framework GLUT -framework OpenGL"
+      options="$options -framework GLUT -framework OpenGL -Wno-deprecated"
       shift
       ;;
     '--debug')
