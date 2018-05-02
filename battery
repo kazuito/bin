@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [ $(uname) = 'Darwin' ] ; then
+if [ $(uname) = 'Darwin' -a ! -z "$(system_profiler SPPowerDataType | grep 'Battery Power')" ] ; then
     system_profiler SPPowerDataType | grep "Amperage" | awk '{print $3 " mA"}'
 else
     echo "$0: not supported"
