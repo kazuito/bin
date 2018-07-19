@@ -2,6 +2,16 @@
 
 # Option parsing template by http://qiita.com/rita_cano_bika/items/9fcb2a61c6f360632541
 PROGNAME=$(basename $0)
+LATEX_BIN=uplatex
+
+function update_latex_bin () {
+  if [ -x `which $1` -o -x "$1" ] ; then
+    LATEX_BIN=$1
+  else
+    echo "$1 が存在しません．" 1>&2
+  fi
+}
+
 for OPT in "$@"
 do
   case "$OPT" in
@@ -41,6 +51,14 @@ do
       ;;
     '-r'|'--remove')
       texfilesdelete=1
+      shift
+      ;;
+    '--platex')
+      update_latex_bin platex
+      shift
+      ;;
+    '--uplatex')
+      update_latex_bin uplatex
       shift
       ;;
     '--'|'-' )
@@ -107,7 +125,7 @@ pdffn=$pdfdir/$pdfbasename
 
 for f in 1st 2nd 3rd final; do
   echo "---------- $f try ----------"
-  result=`uplatex -interaction=nonstopmode --output-directory="$dstdir" $param`
+  result=`$LATEX_BIN -interaction=nonstopmode --output-directory="$dstdir" $param`
   if [ ! $? = 0 ]; then
     echo "$result"
     exit 1
