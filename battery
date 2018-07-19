@@ -1,7 +1,13 @@
 #!/bin/bash
 
-if [ $(uname) = 'Darwin' -a ! -z "$(system_profiler SPPowerDataType | grep 'Battery Power')" ] ; then
+if [ `which system_profiler >/dev/null 2>/dev/null` ] ; then
+  if [ $(uname) = 'Darwin' -a ! -z "$(system_profiler SPPowerDataType | grep 'Battery Power')" ] ; then
     system_profiler SPPowerDataType | grep "Amperage" | awk '{print $3 " mA"}'
+  else
+    echo "$0: battery not found"
+    exit 1
+  fi
 else
-    echo "$0: not supported"
+  echo "$0: not supported"
+  exit 1
 fi
