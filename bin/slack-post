@@ -1,13 +1,16 @@
 #!/bin/bash
 set -eu
 
+# Variables
+TMPFILE_DIR=/tmp
+
 #Incoming WebHooksのURL
 WEBHOOKURL=""
-#メッセージを保存する一時ファイル
-MESSAGEFILE=$(mktemp -t webhooks-XXX)
-trap "
-rm ${MESSAGEFILE}
-" 0
+
+# Temporary file to save the message given
+MESSAGEFILE=$(mktemp -t $TMPFILE_DIR/webhooks-XXX)
+# Remove temporary file whenever the script exits
+trap "rm ${MESSAGEFILE}" 0
 
 usage_exit() {
     echo "Usage: $0 [-m message] [-c channel] [-i icon] [-n botname]" 1>&2
