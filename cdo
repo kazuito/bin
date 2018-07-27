@@ -9,6 +9,7 @@ do
       ;;
     '-p')
       compiler=g++
+      options="$options -std=c++14"
       shift
       ;;
     '-l')
@@ -55,6 +56,8 @@ if [ -z  "$compiler" ]; then
   case "$bfname" in
     *\.cpp)
       compiler=g++
+      options="$options -std=c++14"
+      shift
       ;;
     *)
       compiler=gcc
