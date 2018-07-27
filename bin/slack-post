@@ -2,13 +2,12 @@
 set -eu
 
 # Variables
-TMPFILE_DIR=/tmp
-
 #Incoming WebHooksのURL
+
 WEBHOOKURL=""
 
 # Temporary file to save the message given
-MESSAGEFILE=$(mktemp -t $TMPFILE_DIR/webhooks-XXX)
+MESSAGEFILE=$(mktemp -t webhooks-XXX)
 # Remove temporary file whenever the script exits
 trap "rm ${MESSAGEFILE}" 0
 
