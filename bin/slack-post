@@ -1,59 +1,169 @@
 #!/bin/bash
 set -eu
+PROGNAME=$(basename $0)
 
 # Variables
-#Incoming WebHooksのURL
-
+DEFAULT_CHANNEL="@takaion"
+DEFAULT_NAME="$PROGNAME"
+DEFAULT_ICON=":computer:"
+# Incoming WebHooks URL
+# Empty $WEBHOOKURL if you do not prefer to write Webhook URL in this script.
+# One-line text file specified by $WEBHOOKURL_DIR and $WEBHOOKURL_BASE is required
+# if $WEBHOOKURL is empty.
 WEBHOOKURL=""
-
-# Temporary file to save the message given
-MESSAGEFILE=$(mktemp -t webhooks-XXX)
-# Remove temporary file whenever the script exits
-trap "rm ${MESSAGEFILE}" 0
+# WEBHOOKURL_DIR: An array listing up directories that may have file $WEBHOOKURL_BASE
+WEBHOOKURL_DIR=("$PWD" "$PWD/etc" "$PWD/misc" "$HOME/etc" "$HOME/misc" "$HOME")
+WEBHOOKURL_BASE="slack-post_webhook.txt"
 
 usage_exit() {
-    echo "Usage: $0 [-m message] [-c channel] [-i icon] [-n botname]" 1>&2
+    cat <<EOS 1>&2
+Usage:
+  $PROGNAME [options] [text]
+
+Options:
+  -c --channel  Set channel name. (e.g. #general, @takaion) [DEFAULT=$DEFAULT_CHANNEL]
+  -i --icon     Set bot's icon (e.g. :computer:, :thinking_face:) [DEFAULT=$DEFAULT_ICON]
+  -n --name     Set bot's name [DEFAULT=$DEFAULT_NAME]
+  -v --verbose  Print detailed information
+  --dryrun      Dry-run mode
+EOS
     exit 0
 }
 
-while getopts c:i:n:m: opts
-do
-    case $opts in
-        c)
-            CHANNEL=$OPTARG
-            ;;
-        i)
-            FACEICON=$OPTARG
-            ;;
-        n)
-            BOTNAME=$OPTARG
-            ;;
-        m)
-            MESSAGE=$OPTARG"\n"
-            ;;
-        \?)
-            usage_exit
-            ;;
-    esac
-done
-#slack 送信チャンネル
-CHANNEL=${CHANNEL:-"@takaion"}
-#slack 送信名
-BOTNAME=${BOTNAME:-"takaionbot"}
-#slack アイコン
-FACEICON=${FACEICON:-":computer:"}
-#見出しとなるようなメッセージ
-MESSAGE=${MESSAGE:-""}
+echo_err () {
+  echo "$PROGNAME: $@" >&2
+}
 
-if [ -p /dev/stdin ] ; then
-    #改行コードをslack用に変換
-    cat - | tr '\n' '\\' | sed 's/\\/\\n/g'  > ${MESSAGEFILE}
-else
-    echo "nothing stdin"
+# Initialize internal variables
+DRY_RUN=0
+VERBOSE=0
+
+CHANNEL="$DEFAULT_CHANNEL"
+NAME="$DEFAULT_NAME"
+ICON="$DEFAULT_ICON"
+
+ARG_MESSAGE=()
+
+for OPT in "$@"
+do
+  case $OPT in
+    '-c'|'--channel')
+      if [ ! -z "$2" ]; then
+        CHANNEL="$2"
+      else
+        echo_err "channel or user name required"
+        exit 1
+      fi
+      shift 2
+      ;;
+    '-i'|'--icon')
+      if [ ! -z "$2" ]; then
+        ICON="$2"
+      else
+        echo_err "icon name required"
+      fi
+      shift 2
+      ;;
+    '-n'|'--name')
+      if [ ! -z "$2" ]; then
+        ICON="$2"
+      else
+        echo_err "bot name required"
+      fi
+      shift 2
+      ;;
+    '--dryrun')
+      DRY_RUN=1
+      ;;
+    '-v'|'--verbose')
+      VERBOSE=1
+      ;;
+    '--'|'-' )
+      shift 1
+      ARG_MESSAGE+=( "$@" )
+      break
+      ;;
+    -*)
+      echo_err "Invalid option $(echo $1 | sed 's/^-*//')"
+      exit 1
+      ;;
+    *)
+      if [[ ! -z "$1" ]] && [[ ! "$1" =~ ^-+ ]]; then
+        ARG_MESSAGE+=( "$1" )
+        shift 1
+      fi
+      ;;
+  esac
+done
+
+# Search Webhook URL
+if [ -z "$WEBHOOKURL" ]; then
+  for d in ${WEBHOOKURL_DIR[@]}
+  do
+    webhook_path="$d/$WEBHOOKURL_BASE"
+    if [ $VERBOSE = 1 ]; then
+      echo "Searching $webhook_path"
+    fi
+    if [ -r "$webhook_path" ]; then
+      WEBHOOKURL_SOURCE=$webhook_path
+      WEBHOOKURL=$(cat $webhook_path)
+      break
+    fi
+  done
+  if [ -z "$WEBHOOKURL" ]; then
+    echo_err "Webhook URL not found"
     exit 1
+  fi
+else
+  WEBHOOKURL_SOURCE="[Built-in]"
 fi
 
-WEBMESSAGE="\n"`cat ${MESSAGEFILE}`
+# Expand message from augument(s)
+# Avoid unexpected stop before bash 4.3
+set +u
+TEXT="${ARG_MESSAGE[*]}"
+set -u
 
-#Incoming WebHooks送信
-curl -s -S -X POST --data-urlencode "payload={\"channel\": \"${CHANNEL}\", \"username\": \"${BOTNAME}\", \"icon_emoji\": \"${FACEICON}\", \"text\": \"${MESSAGE}${WEBMESSAGE}\" }" ${WEBHOOKURL} >/dev/null
+# Read message from stdin
+if [ -p /dev/stdin ] ; then
+  #改行コードをslack用に変換
+  STDIN_MESSAGE=$(cat - | tr '\n' '\\' | sed 's/\\/\\n/g')
+  if [ -z "$TEXT" ]; then
+    TEXT="$STDIN_MESSAGE"
+  elif [ ! -z "$STDIN_MESSAGE" ]; then
+    TEXT="$TEXT\n$STDIN_MESSAGE"
+  fi
+fi
+
+# Message validation
+if [ -z "$TEXT" ]; then
+  echo_err "No text provided from neither argument nor stdin"
+  exit 1
+fi
+
+# Print detailed parameters information
+if [ $VERBOSE = 1 ]; then
+  cat <<EOS
+---------- Parameters ----------
+Webhook URL: $WEBHOOKURL
+URL Source : $WEBHOOKURL_SOURCE
+Channel    : $CHANNEL
+Bot's name : $NAME
+Bot's Icon : $ICON
+Text to be posted:
+$TEXT
+--------------------------------
+EOS
+fi
+
+# Send message via Incoming WebHooks
+DATA="payload={\"channel\": \"${CHANNEL}\", \"username\": \"${NAME}\", \"icon_emoji\": \"${ICON}\", \"text\": \"${TEXT}\" }"
+if [ $DRY_RUN = 0 ]; then
+  RESPONSE=$(curl -s -S -X POST --data-urlencode "$DATA" $WEBHOOKURL)
+  if [ $VERBOSE = 1 ]; then
+    echo "$RESPONSE"
+  fi
+else
+  echo "Dry-run mode"
+  echo "$DATA"
+fi
