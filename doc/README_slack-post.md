@@ -1,9 +1,9 @@
 # `slack-post`
-シェル上からSlackにIncoming Webhooksを利用してテキストを投稿するスクリプト
+シェル上からSlackにIncoming Webhooksを利用してテキストを投稿するスクリプト
 
 ## 前準備
 ### Incoming Webhooks URL の設定
-本スクリプトはIncoming WebhooksのURLを使います．Custom IntegrationsにてURLを取得してください．URLは次のうちどれかに記述してください．
+本スクリプトはIncoming WebhooksのURLを使います．Custom IntegrationsにてURLを取得してください．URLは次のうちどれかに記述してください．
 
 * スクリプト内の変数 `WEBHOOKURL`
 * `$PWD/slack-post_webhook.txt`
@@ -27,10 +27,10 @@
 オプションを指定しない場合は，次のデフォルト設定が使われます．
 
 * チャンネル: `@takaion`
-* ユーザ名: `slack-post` (`basename` で取得します)
+* ユーザ名: `slack-post` (`basename` で取得します)
 * アイコン: `:computer:` (💻)
 
-しかしながら，デフォルトチャンネルが `@takaion` (作者のSlackでのユーザ名です)なので，ほとんどのワークスペースではデフォルトチャンネルは機能しません (takaionというユーザがいない限りは)．したがって，以下の変数を変更しておくことをおすすめします．
+しかしながら，デフォルトチャンネルが `@takaion` (作者のSlackでのユーザ名です)なので，ほとんどのワークスペースではデフォルトチャンネルは機能しません (takaionというユーザがいない限りは)．したがって，以下の変数を変更しておくことをおすすめします．
 
 * デフォルトチャンネル: `DEFAULT_CHANNEL`
 * ユーザ名: `DEFAULT_USER`
