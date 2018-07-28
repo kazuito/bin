@@ -78,6 +78,9 @@ do
     '-v'|'--verbose')
       VERBOSE=1
       ;;
+    '-h'|'--help')
+      usage_exit
+      ;;
     '--'|'-' )
       shift 1
       ARG_MESSAGE+=( "$@" )
