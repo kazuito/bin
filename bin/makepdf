@@ -3,6 +3,7 @@
 # Option parsing template by http://qiita.com/rita_cano_bika/items/9fcb2a61c6f360632541
 PROGNAME=$(basename $0)
 LATEX_BIN=uplatex
+BIBTEX_BIN=pbibtex
 
 function update_latex_bin () {
   if [ -x `which $1` -o -x "$1" ] ; then
@@ -123,12 +124,25 @@ fi
 
 pdffn=$pdfdir/$pdfbasename
 
-for f in 1st 2nd 3rd final; do
+including_bibtex=`fgrep '\bibliography{' $param`
+
+for f in 1st 2nd 3rd 4th final; do
   echo "---------- $f try ----------"
   result=`$LATEX_BIN -interaction=nonstopmode --output-directory="$dstdir" $param`
   if [ ! $? = 0 ]; then
     echo "$result"
     exit 1
+  fi
+  # TeX files including bibtex references need to compile twice at least
+  if [ ! -z "$including_bibtex" ]; then
+    result=`$BIBTEX_BIN $dstdir/$noext.aux`
+    if [ ! $? = 0 ]; then
+      echo "$result"
+      exit 1
+    fi
+    if [ $f = '1st' ]; then
+      continue
+    fi
   fi
   grep 'Rerun' "$dstdir/$noext.log" || break
 done
