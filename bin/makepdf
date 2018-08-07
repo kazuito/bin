@@ -97,7 +97,8 @@ elif [[ ! "$chdst" = "1" ]]; then
   dstdir=.
 fi
 
-if [[ "$autodetect" = "1" ]] && [[ -z "$pdffilename" ]]; then
+# If --detect option is enabled and pdfbasename (maybe specified by -p option) is empty
+if [[ "$autodetect" = "1" ]] && [[ -z "$pdfbasename" ]]; then
   tmp=$(grep -oE '^%\s*makepdf-filename:\s*.+$' "$param" | \
         ruby -e 'a=/^%\s*makepdf-filename:\s*(.+)/.match(STDIN.gets); puts a[1] if a != nil')
   if [[ "$tmp" = "" ]]; then
