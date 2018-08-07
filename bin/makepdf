@@ -80,13 +80,21 @@ do
   esac
 done
 
-if [ -z $param ]; then
+src_file=$param
+
+if [ -z "$src_file" ]; then
   echo "$PROGNAME: 引数がありません．"
   exit 1
 fi
-srcbn=$(basename $param)
-srcdir=$(dirname $param)
+
+srcbn=$(basename $src_file)
+srcdir=$(dirname $src_file)
 noext=${srcbn%.tex}
+
+if [ $src_file = $noext ]; then
+  echo ".tex ファイルではありません: $src_file" 1>&2
+  exit 1
+fi
 
 if [[ "$chdst" = "1" ]] && [[ -z "$dstdir" ]]; then
   if [[ -z "$dstdirname" ]]; then
