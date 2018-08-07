@@ -5,11 +5,16 @@ PROGNAME=$(basename $0)
 LATEX_BIN=uplatex
 BIBTEX_BIN=pbibtex
 
+# Whether LaTeX binary (command) is manually specified or not
+LATEX_BIN_SPECIFIED=0
+
 function update_latex_bin () {
   if [ -x `which $1` -o -x "$1" ] ; then
     LATEX_BIN=$1
+    LATEX_BIN_SPECIFIED=1
   else
     echo "$1 が存在しません．" 1>&2
+    exit 1
   fi
 }
 
@@ -62,6 +67,10 @@ do
       update_latex_bin uplatex
       shift
       ;;
+    '--compiler'|'--comamnd')
+      update_latex_bin $2
+      shift 2
+      ;;
     '--'|'-' )
       shift 1
       param+=( "$@" )
@@ -111,9 +120,18 @@ if [[ "$autodetect" = "1" ]] && [[ -z "$pdfbasename" ]]; then
         ruby -e 'a=/^%\s*makepdf-filename:\s*(.+)/.match(STDIN.gets); puts a[1] if a != nil')
   if [[ "$tmp" = "" ]]; then
     echo "--detect: makepdf-filename: (filename) が記述された行がありません．" 1>&2
-    exit 1
   else
     pdfbasename="$tmp"
+  fi
+fi
+
+# If --detect option is enabled and  LaTeX binary (command) was not specified
+if [ "$autodetect" = "1" -a "$LATEX_BIN_SPECIFIED" = "0" ]; then
+  tmp=$(grep -E '^%\s+makepdf-compiler:\s' "$src_file" | awk '{ $1 = ""; $2 = ""; print }' | tr -d ' ')
+  if [ -z "$tmp" ]; then
+    echo "--detect: makepdf-compiler: (command) が記述された行がありません．"
+  else
+    LATEX_BIN=$tmp
   fi
 fi
 
