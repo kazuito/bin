@@ -7,6 +7,19 @@ BIBTEX_BIN=pbibtex
 
 # Whether LaTeX binary (command) is manually specified or not
 LATEX_BIN_SPECIFIED=0
+# Read file and find options
+autodetect=1
+
+function error_exit() {
+  local error_code=1
+  if [ ! -z "$1" ]; then
+    echo "$PROGNAME: $1" 1>&2
+  fi
+  if [ ! -z "$2" ]; then
+    error_code=$2
+  fi
+  exit $error_code
+}
 
 function update_latex_bin () {
   if [ -x `which $1` -o -x "$1" ] ; then
@@ -34,6 +47,10 @@ do
         dstdir="$2"
         shift
       fi
+      shift
+      ;;
+    '--no-detect')
+      autodetect=0
       shift
       ;;
     '--detect')
@@ -89,50 +106,65 @@ do
   esac
 done
 
-src_file=$param
+function check_file () {
+  if [ -z "$1" ]; then
+    error_exit "引数がありません。"
+  fi
 
-if [ -z "$src_file" ]; then
-  echo "$PROGNAME: 引数がありません．"
-  exit 1
-fi
+  local _file_path=$1
+  if [ ! -f "$_file_path" ]; then
+    error_exit "ファイル $_file_path は存在しません。"
+  fi
 
-srcbn=$(basename $src_file)
-srcdir=$(dirname $src_file)
-noext=${srcbn%.tex}
+  local _file_base=$(basename $_file_path)
+  local _file_dir=$(dirname $_file_path)
+  local _file_noext=${_file_base%.tex}
+  if [ "$_file_base" = "$_file_noext" ]; then
+    error_exit "ファイル $_file_path は .tex ファイルではありません。"
+  fi
 
-if [ $src_file = $noext ]; then
-  echo ".tex ファイルではありません: $src_file" 1>&2
-  exit 1
-fi
+  src_file=$_file_path
+  srcbn=$_file_base
+  srcdir=$_file_dir
+  noext=$_file_noext
 
-if [[ "$chdst" = "1" ]] && [[ -z "$dstdir" ]]; then
-  if [[ -z "$dstdirname" ]]; then
+  # If --detect option is enabled and  LaTeX binary (command) was not specified
+  if [ "$autodetect" = "1" -a "$LATEX_BIN_SPECIFIED" = "0" ]; then
+    tmp=$(grep -E '^%\s+makepdf-mainfile:\s' "$_file_path" | awk '{ $1 = ""; $2 = ""; print }' | tr -d ' ')
+    if [ ! -z "$tmp" ]; then
+      local _new_main_file=$_file_dir/$tmp
+      echo "Main file changed: $_file_path -> $_new_main_file"
+      check_file $_new_main_file
+      return
+    fi
+  fi
+
+  # If --detect option is enabled and pdfbasename (maybe specified by -p option) is empty
+  if [[ "$autodetect" = "1" ]] && [[ -z "$pdfbasename" ]]; then
+    tmp=$(grep -E '^%\s+makepdf-filename:\s' "$src_file" | awk '{ $1 = ""; $2 = ""; print }' | tr -d ' ')
+    if [ ! "$tmp" = "" ]; then
+      pdfbasename="$tmp"
+    fi
+  fi
+
+  # If --detect option is enabled and  LaTeX binary (command) was not specified
+  if [ "$autodetect" = "1" -a "$LATEX_BIN_SPECIFIED" = "0" ]; then
+    tmp=$(grep -E '^%\s+makepdf-compiler:\s' "$src_file" | awk '{ $1 = ""; $2 = ""; print }' | tr -d ' ')
+    if [ ! -z "$tmp" ]; then
+      LATEX_BIN=$tmp
+    fi
+  fi
+}
+
+check_file $param
+
+if [ "$chdst" = "1" -a -z "$dstdir" ]; then
+  if [ -z "$dstdirname" ]; then
     dstdirname=$noext
   fi
   dstdir=$srcdir/$dstdirname
-elif [[ ! "$chdst" = "1" ]]; then
+elif [ ! "$chdst" = "1" ]; then
   dstdir=.
-fi
-
-# If --detect option is enabled and pdfbasename (maybe specified by -p option) is empty
-if [[ "$autodetect" = "1" ]] && [[ -z "$pdfbasename" ]]; then
-  tmp=$(grep -oE '^%\s*makepdf-filename:\s*.+$' "$param" | \
-        ruby -e 'a=/^%\s*makepdf-filename:\s*(.+)/.match(STDIN.gets); puts a[1] if a != nil')
-  if [[ "$tmp" = "" ]]; then
-    echo "--detect: makepdf-filename: (filename) が記述された行がありません．" 1>&2
-  else
-    pdfbasename="$tmp"
-  fi
-fi
-
-# If --detect option is enabled and  LaTeX binary (command) was not specified
-if [ "$autodetect" = "1" -a "$LATEX_BIN_SPECIFIED" = "0" ]; then
-  tmp=$(grep -E '^%\s+makepdf-compiler:\s' "$src_file" | awk '{ $1 = ""; $2 = ""; print }' | tr -d ' ')
-  if [ -z "$tmp" ]; then
-    echo "--detect: makepdf-compiler: (command) が記述された行がありません．"
-  else
-    LATEX_BIN=$tmp
-  fi
 fi
 
 if [[ ! -d "$dstdir" ]]; then
