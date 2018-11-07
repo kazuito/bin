@@ -10,10 +10,14 @@ LATEX_BIN_SPECIFIED=0
 # Read file and find options
 autodetect=1
 
+function info() {
+  echo "$PROGNAME: $@"
+}
+
 function error_exit() {
   local error_code=1
   if [ ! -z "$1" ]; then
-    echo "$PROGNAME: $1" 1>&2
+    info "$1" 1>&2
   fi
   if [ ! -z "$2" ]; then
     error_code=$2
@@ -183,25 +187,27 @@ fi
 
 pdffn=$pdfdir/$pdfbasename
 
-including_bibtex=`fgrep '\bibliography{' $param`
-
 for f in 1st 2nd 3rd 4th final; do
   echo "---------- $f try ----------"
-  result=`$LATEX_BIN -interaction=nonstopmode --output-directory="$dstdir" $param`
+  result=`$LATEX_BIN -interaction=nonstopmode --output-directory="$dstdir" $src_file`
   if [ ! $? = 0 ]; then
     echo "$result"
     exit 1
   fi
   # TeX files including bibtex references need to compile twice at least
-  if [ ! -z "$including_bibtex" ]; then
-    result=`$BIBTEX_BIN $dstdir/$noext.aux`
-    if [ ! $? = 0 ]; then
+  result=`$BIBTEX_BIN $dstdir/$noext.aux`
+  bibtex_success=$?
+  if [ -z "$(echo "$result" | grep 'I found no')" ]; then
+    # BibTeX found at least 1 citation
+    if [ ! $bibtex_success = 0 ]; then
       echo "$result"
       exit 1
     fi
     if [ $f = '1st' ]; then
       continue
     fi
+  else
+    info "No BibTeX"
   fi
   grep 'Rerun' "$dstdir/$noext.log" || break
 done
