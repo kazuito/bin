@@ -113,7 +113,7 @@ done
 function extract_option_from_file () {
   local _file_path=$1
   local _opt_name=$2
-  local _tmp=$(grep -E '^%\s+makepdf-'"$opt_name"':\s' "$_file_path" | awk '{ $1 = ""; $2 = ""; print }' | tr -d ' ')
+  local _tmp=$(grep -E "^%\\s+makepdf-$_opt_name:\\s" "$_file_path" | awk '{ $1 = ""; $2 = ""; print }' | tr -d ' ')
   echo "$_tmp"
 }
 
