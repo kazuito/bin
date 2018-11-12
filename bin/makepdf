@@ -110,6 +110,13 @@ do
   esac
 done
 
+function extract_option_from_file () {
+  local _file_path=$1
+  local _opt_name=$2
+  local _tmp=$(grep -E '^%\s+makepdf-'"$opt_name"':\s' "$_file_path" | awk '{ $1 = ""; $2 = ""; print }' | tr -d ' ')
+  echo "$_tmp"
+}
+
 function check_file () {
   if [ -z "$1" ]; then
     error_exit "引数がありません。"
@@ -134,9 +141,9 @@ function check_file () {
 
   # If --detect option is enabled and  LaTeX binary (command) was not specified
   if [ "$autodetect" = "1" -a "$LATEX_BIN_SPECIFIED" = "0" ]; then
-    tmp=$(grep -E '^%\s+makepdf-mainfile:\s' "$_file_path" | awk '{ $1 = ""; $2 = ""; print }' | tr -d ' ')
-    if [ ! -z "$tmp" ]; then
-      local _new_main_file=$_file_dir/$tmp
+    local _tmp=$(extract_option_from_file "$_file_path" "mainfile")
+    if [ ! -z "$_tmp" ]; then
+      local _new_main_file="$_file_dir/$_tmp"
       echo "Main file changed: $_file_path -> $_new_main_file"
       check_file $_new_main_file
       return
@@ -145,17 +152,17 @@ function check_file () {
 
   # If --detect option is enabled and pdfbasename (maybe specified by -p option) is empty
   if [[ "$autodetect" = "1" ]] && [[ -z "$pdfbasename" ]]; then
-    tmp=$(grep -E '^%\s+makepdf-filename:\s' "$src_file" | awk '{ $1 = ""; $2 = ""; print }' | tr -d ' ')
-    if [ ! "$tmp" = "" ]; then
-      pdfbasename="$tmp"
+    local _tmp=$(extract_option_from_file "$_file_path" "filename")
+    if [ ! "$_tmp" = "" ]; then
+      pdfbasename="$_tmp"
     fi
   fi
 
   # If --detect option is enabled and  LaTeX binary (command) was not specified
   if [ "$autodetect" = "1" -a "$LATEX_BIN_SPECIFIED" = "0" ]; then
-    tmp=$(grep -E '^%\s+makepdf-compiler:\s' "$src_file" | awk '{ $1 = ""; $2 = ""; print }' | tr -d ' ')
-    if [ ! -z "$tmp" ]; then
-      LATEX_BIN=$tmp
+    local _tmp=$(extract_option_from_file "$_file_path" "compiler")
+    if [ ! -z "$_tmp" ]; then
+      LATEX_BIN="$_tmp"
     fi
   fi
 }
