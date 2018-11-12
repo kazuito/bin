@@ -53,10 +53,53 @@ function update_latex_bin () {
     LATEX_BIN=$1
     LATEX_BIN_SPECIFIED=1
   else
-    echo "$1 が存在しません．" 1>&2
-    exit 1
+    error_exit "$1 が存在しません．"
   fi
 }
+
+function extract_options_from_config () {
+  local _file_path=$1
+  local _opt_name=$2
+
+  local _tmp=$(grep -E "^$_opt_name=" "$_file_path")
+  local _exit_code=$?
+  if [ "$_exit_code" != 0 ]; then
+    return $_exit_code
+  fi
+  echo "$_tmp" | tail -n1 | sed -e "s/^$_opt_name=//g"
+  return 0
+}
+
+function check_makepdfconfig () {
+  if [ ! -z "$1" ]; then
+    local _config_dir=$1
+  else
+    local _config_dir=$(pwd)
+  fi
+  local _config_path="$_config_dir/$MAKEPDF_CONFIG_FILENAME"
+
+  debug $_config_path
+  if [ ! -f "$_config_path" ]; then
+    return
+  fi
+  debug "$MAKEPDF_CONFIG_FILENAME found"
+
+  local _tmp=$(extract_options_from_config "$_config_path" "mainfile")
+  local _exit_code=$?
+  if [ $_exit_code = 0 ]; then
+    src_file=$_tmp
+    debug "Set source file: $_tmp"
+  fi
+
+  local _tmp=$(extract_options_from_config "$_config_path" "open")
+  local _exit_code=$?
+  if [ $_exit_code = 0 ]; then
+    open=$_tmp
+    debug "Set open flag: $_tmp"
+  fi
+}
+
+check_makepdfconfig
 
 for OPT in "$@"
 do
@@ -131,25 +174,17 @@ do
   esac
 done
 
-function check_makepdfconfig () {
-  if [ -z "$1" ]; then
-    local _config_dir=$1
-  else
-    local _config_dir=$PWD
-  fi
-  local _config_path="$_config_dir/$MAKEPDF_CONFIG_FILENAME"
-
-  if [ ! -f "$_config_path" ]; then
-    return
-  fi
-  echo "$MAKEPDF_CONFIG_FILENAME found"
-}
-
 function extract_option_from_file () {
   local _file_path=$1
   local _opt_name=$2
-  local _tmp=$(grep -E "^%\\s+makepdf-$_opt_name:\\s" "$_file_path" | awk '{ $1 = ""; $2 = ""; print }' | tr -d ' ')
-  echo "$_tmp"
+
+  local _tmp=$(grep -E "^%\\s+makepdf-$_opt_name:\\s" "$_file_path")
+  local _exit_code=$?
+  if [ $_exit_code != 0 ]; then
+    return $_exit_code
+  fi
+  echo "$_tmp" | awk '{ $1 = ""; $2 = ""; print }' | tr -d ' '
+  return 0
 }
 
 function check_file () {
@@ -202,9 +237,15 @@ function check_file () {
   fi
 }
 
-src_file=$param
-
-check_makepdfconfig
+if [ -z "$param" ]; then
+  if [ -z "$src_file" ]; then
+    error_exit "Source file not specified"
+  else
+    info "Use mainfile set in makepdf config ($src_file)"
+  fi
+else
+  src_file=$param
+fi
 check_file $src_file
 
 if [ "$chdst" = "1" -a -z "$dstdir" ]; then
