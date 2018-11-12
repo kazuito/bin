@@ -11,6 +11,7 @@ LATEX_BIN_SPECIFIED=0
 # Read file and find options
 autodetect=1
 
+# Debug level (int)
 DEBUG_LEVEL=0
 
 function show_message_by_level() {
@@ -257,17 +258,18 @@ elif [ ! "$chdst" = "1" ]; then
   dstdir=.
 fi
 
-if [[ ! -d "$dstdir" ]]; then
+if [ ! -d "$dstdir" ]; then
+  debug "Destination directory ($dstdir) does not exist. Try to create..."
   mkdir -p $dstdir
 fi
 
-if [[ "$pdfsamedir" = "1" ]]; then
+if [ "$pdfsamedir" = "1" ]; then
   pdfdir=$srcdir
 else
   pdfdir=$dstdir
 fi
 
-if [[ -z "$pdfbasename" ]]; then
+if [ -z "$pdfbasename" ]; then
   pdfbasename=$noext.pdf
 fi
 
