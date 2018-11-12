@@ -2,6 +2,7 @@
 
 # Option parsing template by http://qiita.com/rita_cano_bika/items/9fcb2a61c6f360632541
 PROGNAME=$(basename $0)
+MAKEPDF_CONFIG_FILENAME=".makepdfconfig"
 LATEX_BIN=uplatex
 BIBTEX_BIN=pbibtex
 
@@ -110,6 +111,20 @@ do
   esac
 done
 
+function check_makepdfconfig () {
+  if [ -z "$1" ]; then
+    local _config_dir=$1
+  else
+    local _config_dir=$PWD
+  fi
+  local _config_path="$_config_dir/$MAKEPDF_CONFIG_FILENAME"
+
+  if [ ! -f "$_config_path" ]; then
+    return
+  fi
+  echo "$MAKEPDF_CONFIG_FILENAME found"
+}
+
 function extract_option_from_file () {
   local _file_path=$1
   local _opt_name=$2
@@ -167,7 +182,10 @@ function check_file () {
   fi
 }
 
-check_file $param
+src_file=$param
+
+check_makepdfconfig
+check_file $src_file
 
 if [ "$chdst" = "1" -a -z "$dstdir" ]; then
   if [ -z "$dstdirname" ]; then
