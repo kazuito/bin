@@ -11,6 +11,7 @@ LATEX_BIN_SPECIFIED=0
 # Read file and find options
 autodetect=1
 
+# Debug level (int)
 DEBUG_LEVEL=0
 
 function show_message_by_level() {
@@ -61,12 +62,12 @@ function extract_options_from_config () {
   local _file_path=$1
   local _opt_name=$2
 
-  local _tmp=$(grep -E "^$_opt_name=" "$_file_path")
+  local _tmp=$(grep -E "^($_opt_name)=" "$_file_path")
   local _exit_code=$?
   if [ "$_exit_code" != 0 ]; then
     return $_exit_code
   fi
-  echo "$_tmp" | tail -n1 | sed -e "s/^$_opt_name=//g"
+  echo "$_tmp" | tail -n1 | sed -e "s/^\($_opt_name\)=//g"
   return 0
 }
 
@@ -178,7 +179,7 @@ function extract_option_from_file () {
   local _file_path=$1
   local _opt_name=$2
 
-  local _tmp=$(grep -E "^%\\s+makepdf-$_opt_name:\\s" "$_file_path")
+  local _tmp=$(grep -E "^%\\s+makepdf-($_opt_name):\\s" "$_file_path")
   local _exit_code=$?
   if [ $_exit_code != 0 ]; then
     return $_exit_code
@@ -257,17 +258,18 @@ elif [ ! "$chdst" = "1" ]; then
   dstdir=.
 fi
 
-if [[ ! -d "$dstdir" ]]; then
+if [ ! -d "$dstdir" ]; then
+  debug "Destination directory ($dstdir) does not exist. Try to create..."
   mkdir -p $dstdir
 fi
 
-if [[ "$pdfsamedir" = "1" ]]; then
+if [ "$pdfsamedir" = "1" ]; then
   pdfdir=$srcdir
 else
   pdfdir=$dstdir
 fi
 
-if [[ -z "$pdfbasename" ]]; then
+if [ -z "$pdfbasename" ]; then
   pdfbasename=$noext.pdf
 fi
 
