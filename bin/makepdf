@@ -67,7 +67,7 @@ function extract_options_from_config () {
   if [ "$_exit_code" != 0 ]; then
     return $_exit_code
   fi
-  echo "$_tmp" | tail -n1 | sed -e "s/^($_opt_name)=//g"
+  echo "$_tmp" | tail -n1 | sed -e "s/^\($_opt_name\)=//g"
   return 0
 }
 
