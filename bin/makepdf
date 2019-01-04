@@ -1,6 +1,5 @@
 #!/bin/bash
 
-# Option parsing template by http://qiita.com/rita_cano_bika/items/9fcb2a61c6f360632541
 PROGNAME=$(basename $0)
 MAKEPDF_CONFIG_FILENAME=".makepdfconfig"
 LATEX_BIN=uplatex
@@ -11,6 +10,8 @@ LATEX_BIN_SPECIFIED=0
 # Read file and find options
 autodetect=1
 
+# ===============================================
+# Logger
 # Debug level (int)
 DEBUG_LEVEL=0
 
@@ -38,6 +39,9 @@ function error() {
   show_message_by_level 3 "[Error]" $@
 }
 
+# ===============================================
+# Misc functions
+
 function error_exit() {
   local error_code=1
   if [ ! -z "$1" ]; then
@@ -48,6 +52,9 @@ function error_exit() {
   fi
   exit $error_code
 }
+
+# ===============================================
+# Program specific functions
 
 function update_latex_bin () {
   if [ -x `which $1` -o -x "$1" ] ; then
@@ -79,7 +86,7 @@ function check_makepdfconfig () {
   fi
   local _config_path="$_config_dir/$MAKEPDF_CONFIG_FILENAME"
 
-  debug $_config_path
+  debug "Checking whether makepdf config exists or not: $_config_path"
   if [ ! -f "$_config_path" ]; then
     return
   fi
@@ -87,21 +94,38 @@ function check_makepdfconfig () {
 
   local _tmp=$(extract_options_from_config "$_config_path" "mainfile")
   local _exit_code=$?
-  if [ $_exit_code = 0 ]; then
+  if [ $_exit_code = 0 -a ! -z "$_tmp" ]; then
     src_file=$_tmp
     debug "Set source file: $_tmp"
   fi
 
   local _tmp=$(extract_options_from_config "$_config_path" "open")
   local _exit_code=$?
-  if [ $_exit_code = 0 ]; then
+  if [ $_exit_code = 0 -a ! -z "$_tmp" ]; then
     open=$_tmp
     debug "Set open flag: $_tmp"
+  fi
+
+  local _tmp=$(extract_options_from_config "$_config_path" "texfiles_dir")
+  local _exit_code=$?
+  if [ $_exit_code = 0 -a ! -z "$_tmp" ]; then
+    pdfsamedir=1
+    chdst=1
+    dstdirname=$_tmp
+    debug "Set texfiles directory: $_tmp"
+  fi
+
+  local _tmp=$(extract_options_from_config "$_config_path" "compiler")
+  local _exit_code=$?
+  if [ $_exit_code = 0 -a ! -z "$_tmp" ]; then
+    update_latex_bin $_tmp
+    debug "Set LaTeX compiler: $_tmp"
   fi
 }
 
 check_makepdfconfig
 
+# Option parsing template by http://qiita.com/rita_cano_bika/items/9fcb2a61c6f360632541
 for OPT in "$@"
 do
   case "$OPT" in
