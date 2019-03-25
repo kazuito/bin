@@ -55,4 +55,6 @@ texファイルから`% makepdf-filename: ファイル名.pdf`のようにファ
 ここで言う「真のパス」とは，シンボリックリンクや`~`(ホームディレクトリ)などをすべて解決したパスを指します．
 
 ## slack-post
-[doc/README_slack-post.md](doc/README_slack-post.md) を参照．
+標準入力または引数をSlackのIncoming Webhooksを利用して投稿するスクリプトです．
+
+[doc/README_slack-post.md](doc/README_slack-post.md) も参照．

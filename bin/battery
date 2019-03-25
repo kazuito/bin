@@ -1,7 +1,7 @@
 #!/bin/bash
 
-if [ `which system_profiler >/dev/null 2>/dev/null` ] ; then
-  if [ $(uname) = 'Darwin' -a ! -z "$(system_profiler SPPowerDataType | grep 'Battery Power')" ] ; then
+if [ $(uname) = 'Darwin' -a -x "$(which system_profiler)" ] ; then
+  if [ ! -z "$(system_profiler SPPowerDataType | grep 'Battery Power')" ] ; then
     system_profiler SPPowerDataType | grep "Amperage" | awk '{print $3 " mA"}'
   else
     echo "$0: battery not found"

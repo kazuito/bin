@@ -1,17 +1,131 @@
 #!/bin/bash
 
-# Option parsing template by http://qiita.com/rita_cano_bika/items/9fcb2a61c6f360632541
 PROGNAME=$(basename $0)
+MAKEPDF_CONFIG_FILENAME=".makepdfconfig"
 LATEX_BIN=uplatex
+BIBTEX_BIN=pbibtex
+
+# Whether LaTeX binary (command) is manually specified or not
+LATEX_BIN_SPECIFIED=0
+# Read file and find options
+autodetect=1
+
+# ===============================================
+# Logger
+# Debug level (int)
+DEBUG_LEVEL=0
+
+function show_message_by_level() {
+  local _level=$1
+  shift
+  if [ $DEBUG_LEVEL -le $_level ]; then
+    echo "$PROGNAME: $@" 1>&2
+  fi
+}
+
+function debug() {
+  show_message_by_level 0 "[Debug]" $@
+}
+
+function info() {
+  show_message_by_level 1 "[Info]" $@
+}
+
+function warn() {
+  show_message_by_level 2 "[Warn]" $@
+}
+
+function error() {
+  show_message_by_level 3 "[Error]" $@
+}
+
+# ===============================================
+# Misc functions
+
+function error_exit() {
+  local error_code=1
+  if [ ! -z "$1" ]; then
+    error "$1"
+  fi
+  if [ ! -z "$2" ]; then
+    error_code=$2
+  fi
+  exit $error_code
+}
+
+# ===============================================
+# Program specific functions
 
 function update_latex_bin () {
   if [ -x `which $1` -o -x "$1" ] ; then
     LATEX_BIN=$1
+    LATEX_BIN_SPECIFIED=1
   else
-    echo "$1 が存在しません．" 1>&2
+    error_exit "$1 が存在しません．"
   fi
 }
 
+function extract_options_from_config () {
+  local _file_path=$1
+  local _opt_name=$2
+
+  local _tmp=$(grep -E "^($_opt_name)=" "$_file_path")
+  local _exit_code=$?
+  if [ "$_exit_code" != 0 ]; then
+    return $_exit_code
+  fi
+  echo "$_tmp" | tail -n1 | sed -e "s/^\($_opt_name\)=//g"
+  return 0
+}
+
+function check_makepdfconfig () {
+  if [ ! -z "$1" ]; then
+    local _config_dir=$1
+  else
+    local _config_dir=$(pwd)
+  fi
+  local _config_path="$_config_dir/$MAKEPDF_CONFIG_FILENAME"
+
+  debug "Checking whether makepdf config exists or not: $_config_path"
+  if [ ! -f "$_config_path" ]; then
+    return
+  fi
+  debug "$MAKEPDF_CONFIG_FILENAME found"
+
+  local _tmp=$(extract_options_from_config "$_config_path" "mainfile")
+  local _exit_code=$?
+  if [ $_exit_code = 0 -a ! -z "$_tmp" ]; then
+    src_file=$_tmp
+    debug "Set source file: $_tmp"
+  fi
+
+  local _tmp=$(extract_options_from_config "$_config_path" "open")
+  local _exit_code=$?
+  if [ $_exit_code = 0 -a ! -z "$_tmp" ]; then
+    open=$_tmp
+    debug "Set open flag: $_tmp"
+  fi
+
+  local _tmp=$(extract_options_from_config "$_config_path" "texfiles_dir")
+  local _exit_code=$?
+  if [ $_exit_code = 0 -a ! -z "$_tmp" ]; then
+    pdfsamedir=1
+    chdst=1
+    dstdirname=$_tmp
+    debug "Set texfiles directory: $_tmp"
+  fi
+
+  local _tmp=$(extract_options_from_config "$_config_path" "compiler")
+  local _exit_code=$?
+  if [ $_exit_code = 0 -a ! -z "$_tmp" ]; then
+    update_latex_bin $_tmp
+    debug "Set LaTeX compiler: $_tmp"
+  fi
+}
+
+check_makepdfconfig
+
+# Option parsing template by http://qiita.com/rita_cano_bika/items/9fcb2a61c6f360632541
 for OPT in "$@"
 do
   case "$OPT" in
@@ -30,6 +144,10 @@ do
       fi
       shift
       ;;
+    '--no-detect')
+      autodetect=0
+      shift
+      ;;
     '--detect')
       autodetect=1
       shift
@@ -44,8 +162,7 @@ do
       if [[ ! -z "$2" ]]; then
         pdfbasename="$2"
       else
-        echo "$PROGNAME: p オプションには引数が必要です．" 1>&2
-        exit 1
+        error_exit "p オプションには引数が必要です．"
       fi
       shift 2
       ;;
@@ -61,14 +178,17 @@ do
       update_latex_bin uplatex
       shift
       ;;
+    '--compiler'|'--comamnd')
+      update_latex_bin $2
+      shift 2
+      ;;
     '--'|'-' )
       shift 1
       param+=( "$@" )
       break
       ;;
     -*)
-      echo "$PROGNAME: 「$(echo $1 | sed 's/^-*//')」オプションは存在しません．" 1>&2
-      exit 1
+      error_exit "「$(echo $1 | sed 's/^-*//')」オプションは存在しません．"
       ;;
     *)
       if [[ ! -z "$1" ]] && [[ ! "$1" =~ ^-+ ]]; then
@@ -79,56 +199,127 @@ do
   esac
 done
 
-if [ -z $param ]; then
-  echo "$PROGNAME: 引数がありません．"
-  exit 1
-fi
-srcbn=$(basename $param)
-srcdir=$(dirname $param)
-noext=${srcbn%.tex}
+function extract_option_from_file () {
+  local _file_path=$1
+  local _opt_name=$2
 
-if [[ "$chdst" = "1" ]] && [[ -z "$dstdir" ]]; then
-  if [[ -z "$dstdirname" ]]; then
+  local _tmp=$(grep -E "^%\\s+makepdf-($_opt_name):\\s" "$_file_path")
+  local _exit_code=$?
+  if [ $_exit_code != 0 ]; then
+    return $_exit_code
+  fi
+  echo "$_tmp" | awk '{ $1 = ""; $2 = ""; print }' | tr -d ' '
+  return 0
+}
+
+function check_file () {
+  if [ -z "$1" ]; then
+    error_exit "引数がありません。"
+  fi
+
+  local _file_path=$1
+  if [ ! -f "$_file_path" ]; then
+    error_exit "ファイル $_file_path は存在しません。"
+  fi
+
+  local _file_base=$(basename $_file_path)
+  local _file_dir=$(dirname $_file_path)
+  local _file_noext=${_file_base%.tex}
+  if [ "$_file_base" = "$_file_noext" ]; then
+    error_exit "ファイル $_file_path は .tex ファイルではありません。"
+  fi
+
+  src_file=$_file_path
+  srcbn=$_file_base
+  srcdir=$_file_dir
+  noext=$_file_noext
+
+  # If --detect option is enabled and  LaTeX binary (command) was not specified
+  if [ "$autodetect" = "1" -a "$LATEX_BIN_SPECIFIED" = "0" ]; then
+    local _tmp=$(extract_option_from_file "$_file_path" "mainfile")
+    if [ ! -z "$_tmp" ]; then
+      local _new_main_file="$_file_dir/$_tmp"
+      echo "Main file changed: $_file_path -> $_new_main_file"
+      check_file $_new_main_file
+      return
+    fi
+  fi
+
+  # If --detect option is enabled and pdfbasename (maybe specified by -p option) is empty
+  if [[ "$autodetect" = "1" ]] && [[ -z "$pdfbasename" ]]; then
+    local _tmp=$(extract_option_from_file "$_file_path" "filename")
+    if [ ! "$_tmp" = "" ]; then
+      pdfbasename="$_tmp"
+    fi
+  fi
+
+  # If --detect option is enabled and  LaTeX binary (command) was not specified
+  if [ "$autodetect" = "1" -a "$LATEX_BIN_SPECIFIED" = "0" ]; then
+    local _tmp=$(extract_option_from_file "$_file_path" "compiler")
+    if [ ! -z "$_tmp" ]; then
+      LATEX_BIN="$_tmp"
+    fi
+  fi
+}
+
+if [ -z "$param" ]; then
+  if [ -z "$src_file" ]; then
+    error_exit "Source file not specified"
+  else
+    info "Use mainfile set in makepdf config ($src_file)"
+  fi
+else
+  src_file=$param
+fi
+check_file $src_file
+
+if [ "$chdst" = "1" -a -z "$dstdir" ]; then
+  if [ -z "$dstdirname" ]; then
     dstdirname=$noext
   fi
   dstdir=$srcdir/$dstdirname
-elif [[ ! "$chdst" = "1" ]]; then
+elif [ ! "$chdst" = "1" ]; then
   dstdir=.
 fi
 
-if [[ "$autodetect" = "1" ]] && [[ -z "$pdffilename" ]]; then
-  tmp=$(grep -oE '^%\s*makepdf-filename:\s*.+$' "$param" | \
-        ruby -e 'a=/^%\s*makepdf-filename:\s*(.+)/.match(STDIN.gets); puts a[1] if a != nil')
-  if [[ "$tmp" = "" ]]; then
-    echo "--detect: makepdf-filename: (filename) が記述された行がありません．" 1>&2
-    exit 1
-  else
-    pdfbasename="$tmp"
-  fi
-fi
-
-if [[ ! -d "$dstdir" ]]; then
+if [ ! -d "$dstdir" ]; then
+  debug "Destination directory ($dstdir) does not exist. Try to create..."
   mkdir -p $dstdir
 fi
 
-if [[ "$pdfsamedir" = "1" ]]; then
+if [ "$pdfsamedir" = "1" ]; then
   pdfdir=$srcdir
 else
   pdfdir=$dstdir
 fi
 
-if [[ -z "$pdfbasename" ]]; then
+if [ -z "$pdfbasename" ]; then
   pdfbasename=$noext.pdf
 fi
 
 pdffn=$pdfdir/$pdfbasename
 
-for f in 1st 2nd 3rd final; do
+for f in 1st 2nd 3rd 4th final; do
   echo "---------- $f try ----------"
-  result=`$LATEX_BIN -interaction=nonstopmode --output-directory="$dstdir" $param`
+  result=`$LATEX_BIN -interaction=nonstopmode --output-directory="$dstdir" $src_file`
   if [ ! $? = 0 ]; then
     echo "$result"
     exit 1
+  fi
+  # TeX files including bibtex references need to compile twice at least
+  result=`$BIBTEX_BIN $dstdir/$noext.aux`
+  bibtex_success=$?
+  if [ -z "$(echo "$result" | grep 'I found no')" ]; then
+    # BibTeX found at least 1 citation
+    if [ ! $bibtex_success = 0 ]; then
+      echo "$result"
+      exit 1
+    fi
+    if [ $f = '1st' ]; then
+      continue
+    fi
+  else
+    info "No BibTeX"
   fi
   grep 'Rerun' "$dstdir/$noext.log" || break
 done
