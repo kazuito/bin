@@ -53,3 +53,6 @@ texファイルから`% makepdf-filename: ファイル名.pdf`のようにファ
 ## truepath (Ruby)
 引数が与えられればその引数すべてを，なければカレントディレクトリの「真のパス」を表示します．
 ここで言う「真のパス」とは，シンボリックリンクや`~`(ホームディレクトリ)などをすべて解決したパスを指します．
+
+## slack-post
+[doc/README_slack-post.md](doc/README_slack-post.md) を参照．

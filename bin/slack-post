@@ -21,11 +21,12 @@ Usage:
   $PROGNAME [options] [text]
 
 Options:
-  -c --channel  Set channel name. (e.g. #general, @takaion) [DEFAULT=$DEFAULT_CHANNEL]
-  -i --icon     Set bot's icon (e.g. :computer:, :thinking_face:) [DEFAULT=$DEFAULT_ICON]
-  -n --name     Set bot's name [DEFAULT=$DEFAULT_NAME]
-  -v --verbose  Print detailed information
-  --dryrun      Dry-run mode
+  -c --channel     Set channel name. (e.g. #general, @takaion) [DEFAULT=$DEFAULT_CHANNEL]
+  -i --icon        Set bot's icon (e.g. :computer:, :thinking_face:) [DEFAULT=$DEFAULT_ICON]
+  -n --name        Set bot's name [DEFAULT=$DEFAULT_NAME]
+  -w --webhook-url Set Webhook URL
+  -v --verbose     Print detailed information
+  --dryrun         Dry-run mode
 EOS
     exit 0
 }
@@ -69,6 +70,14 @@ do
         ICON="$2"
       else
         echo_err "bot name required"
+      fi
+      shift 2
+      ;;
+    '-w'|'--webhook-url')
+      if [ ! -z "$2" ]; then
+        WEBHOOKURL="$2"
+      else
+        echo_err "Webhook URL required"
       fi
       shift 2
       ;;
