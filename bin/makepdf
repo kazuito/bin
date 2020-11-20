@@ -2,7 +2,7 @@
 
 PROGNAME=$(basename $0)
 MAKEPDF_CONFIG_FILENAME=".makepdfconfig"
-LATEX_BIN=uplatex
+LATEX_BIN=platex
 BIBTEX_BIN=pbibtex
 
 # Whether LaTeX binary (command) is manually specified or not
